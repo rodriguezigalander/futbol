@@ -1,4 +1,4 @@
-# ⚽ Disponibilidad Fútbol Peñas
+# ⚽ Disponibilidad Fútbol de Peñas
 
 App sencilla para recoger la disponibilidad de los jugadores para los partidos de la semana.
 
