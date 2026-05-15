@@ -1,32 +1,28 @@
 'use client'
 import { useState } from 'react'
 
-// Generate next 7 days starting from tomorrow
-function getNextWeekDays() {
+function getDays() {
   const days = []
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  const today = new Date()
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today)
-    d.setDate(today.getDate() + i)
+  for (let day = 16; day <= 27; day++) {
+    const d = new Date(2025, 4, day)
     days.push({
       key: d.toISOString().split('T')[0],
       label: dayNames[d.getDay()],
-      date: `${d.getDate()} ${monthNames[d.getMonth()]}`,
+      date: `${d.getDate()} May`,
     })
   }
   return days
 }
 
 const HOURS = ['18:00', '19:00', '20:00']
-const DAYS = getNextWeekDays()
+const DAYS = getDays()
 
 export default function Home() {
   const [name, setName] = useState('')
   const [selected, setSelected] = useState({})
   const [observations, setObservations] = useState('')
-  const [status, setStatus] = useState('idle') // idle | loading | success | error
+  const [status, setStatus] = useState('idle')
 
   const toggleSlot = (dayKey, hour) => {
     const k = `${dayKey}|${hour}`
@@ -72,10 +68,9 @@ export default function Home() {
       <div className="header">
         <div className="badge">⚽ Torneo de Peñas</div>
         <h1>¿CUÁNDO<br />PUEDES?</h1>
-        <p>Semana del {DAYS[0].date} al {DAYS[6].date}</p>
+        <p>Del 16 al 27 de mayo</p>
       </div>
 
-      {/* Name */}
       <div className="card">
         <div className="card-label">Tu nombre</div>
         <input
@@ -88,7 +83,6 @@ export default function Home() {
         />
       </div>
 
-      {/* Days grid */}
       <div className="card">
         <div className="card-label">Días y horas disponibles</div>
         {DAYS.map(day => (
@@ -114,7 +108,6 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Observations */}
       <div className="card">
         <div className="card-label">Observaciones (opcional)</div>
         <textarea

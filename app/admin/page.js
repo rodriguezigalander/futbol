@@ -1,18 +1,15 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 
-function getNextWeekDays() {
+function getDays() {
   const days = []
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  const today = new Date()
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today)
-    d.setDate(today.getDate() + i)
+  for (let day = 16; day <= 27; day++) {
+    const d = new Date(2025, 4, day)
     days.push({
       key: d.toISOString().split('T')[0],
       label: dayNames[d.getDay()],
-      date: `${d.getDate()} ${monthNames[d.getMonth()]}`,
+      date: `${d.getDate()} May`,
       short: `${dayNames[d.getDay()]}\n${d.getDate()}`,
     })
   }
@@ -20,7 +17,7 @@ function getNextWeekDays() {
 }
 
 const HOURS = ['18:00', '19:00', '20:00']
-const DAYS = getNextWeekDays()
+const DAYS = getDays()
 
 function getCellStyle(count, max) {
   if (count === 0) return { background: '#f3f4f6', color: '#9ca3af' }
@@ -34,6 +31,7 @@ export default function AdminPage() {
   const [votes, setVotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [deleting, setDeleting] = useState(null)
 
   const fetchVotes = useCallback(async () => {
     try {
@@ -47,7 +45,16 @@ export default function AdminPage() {
 
   useEffect(() => { fetchVotes() }, [fetchVotes])
 
-  // Build heatmap data
+  const deleteVote = async (name) => {
+    if (!confirm(`¿Borrar la respuesta de ${name}?`)) return
+    setDeleting(name)
+    try {
+      await fetch(`/api/votes?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      await fetchVotes()
+    } catch {}
+    setDeleting(null)
+  }
+
   const heatmap = {}
   const heatmapNames = {}
   votes.forEach(v => {
@@ -62,7 +69,6 @@ export default function AdminPage() {
   const maxCount = Math.max(...Object.values(heatmap), 0)
   const totalSlots = votes.reduce((acc, v) => acc + (v.slots?.length || 0), 0)
 
-  // Find best slots
   const sortedSlots = Object.entries(heatmap)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3)
@@ -87,23 +93,12 @@ export default function AdminPage() {
         <button className="refresh-btn" onClick={fetchVotes}>↻ Actualizar</button>
       </div>
 
-      {/* Stats */}
       <div className="stat-row">
-        <div className="stat-card">
-          <div className="num">{votes.length}</div>
-          <div className="lbl">Jugadores</div>
-        </div>
-        <div className="stat-card">
-          <div className="num">{totalSlots}</div>
-          <div className="lbl">Huecos totales</div>
-        </div>
-        <div className="stat-card">
-          <div className="num">{maxCount}</div>
-          <div className="lbl">Máx. coincidencias</div>
-        </div>
+        <div className="stat-card"><div className="num">{votes.length}</div><div className="lbl">Jugadores</div></div>
+        <div className="stat-card"><div className="num">{totalSlots}</div><div className="lbl">Huecos totales</div></div>
+        <div className="stat-card"><div className="num">{maxCount}</div><div className="lbl">Máx. coincidencias</div></div>
       </div>
 
-      {/* Best slots */}
       {sortedSlots.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>
           <div className="section-title">MEJORES FRANJAS</div>
@@ -112,43 +107,27 @@ export default function AdminPage() {
               <div className="trophy">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</div>
               <div>
                 <h3>{formatSlotKey(k)}</h3>
-                <p>{count} de {votes.length} jugadores disponibles · {heatmapNames[k]?.join(', ')}</p>
+                <p>{count} de {votes.length} jugadores · {heatmapNames[k]?.join(', ')}</p>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Heatmap */}
       <div className="card heatmap" style={{ marginBottom: '1.5rem' }}>
         <div className="card-label">Mapa de disponibilidad</div>
-        {loading ? (
-          <div className="empty-state">Cargando...</div>
-        ) : votes.length === 0 ? (
-          <div className="empty-state">Aún no hay respuestas</div>
-        ) : (
+        {loading ? <div className="empty-state">Cargando...</div> : votes.length === 0 ? <div className="empty-state">Aún no hay respuestas</div> : (
           <div className="heatmap-grid">
-            {/* Header row */}
             <div></div>
-            {DAYS.map(d => (
-              <div key={d.key} className="hm-head" style={{ whiteSpace: 'pre-line' }}>{d.short}</div>
-            ))}
-            {/* Data rows */}
+            {DAYS.map(d => <div key={d.key} className="hm-head" style={{ whiteSpace: 'pre-line' }}>{d.short}</div>)}
             {HOURS.map(hour => (
               <>
                 <div key={`lbl-${hour}`} className="hm-label">{hour}</div>
                 {DAYS.map(day => {
                   const k = `${day.key}|${hour}`
                   const count = heatmap[k] || 0
-                  const style = getCellStyle(count, maxCount)
-                  const names = heatmapNames[k]?.join(', ') || ''
                   return (
-                    <div
-                      key={k}
-                      className="hm-cell"
-                      style={style}
-                      title={names}
-                    >
+                    <div key={k} className="hm-cell" style={getCellStyle(count, maxCount)} title={heatmapNames[k]?.join(', ') || ''}>
                       {count > 0 ? count : ''}
                     </div>
                   )
@@ -159,38 +138,34 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* Player list */}
       <div className="section-title">RESPUESTAS INDIVIDUALES</div>
-      {loading ? (
-        <div className="empty-state">Cargando...</div>
-      ) : votes.length === 0 ? (
-        <div className="empty-state">Aún no ha respondido nadie</div>
-      ) : (
+      {loading ? <div className="empty-state">Cargando...</div> : votes.length === 0 ? <div className="empty-state">Aún no ha respondido nadie</div> : (
         votes.map((v, i) => (
           <div key={i} className="player-card">
-            <div className="player-name">
-              {v.name}
-              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gray-400)', marginLeft: 8 }}>
-                {v.timestamp ? new Date(v.timestamp).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div className="player-name" style={{ marginBottom: 0 }}>
+                {v.name}
+                <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gray-400)', marginLeft: 8 }}>
+                  {v.timestamp ? new Date(v.timestamp).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                </span>
+              </div>
+              <button
+                onClick={() => deleteVote(v.name)}
+                disabled={deleting === v.name}
+                style={{ background: 'none', border: '1px solid #fca5a5', color: '#ef4444', borderRadius: 6, padding: '3px 10px', fontSize: 12, cursor: 'pointer', opacity: deleting === v.name ? 0.5 : 1, whiteSpace: 'nowrap', marginLeft: 8 }}
+              >
+                {deleting === v.name ? '...' : '🗑 Borrar'}
+              </button>
             </div>
             {v.slots?.length > 0 ? (
               <div className="slot-chips">
                 {v.slots.map((s, j) => {
                   const day = DAYS.find(d => d.key === s.day)
-                  return (
-                    <span key={j} className="chip">
-                      {day ? `${day.label} ${day.date}` : s.day} · {s.hour}
-                    </span>
-                  )
+                  return <span key={j} className="chip">{day ? `${day.label} ${day.date}` : s.day} · {s.hour}</span>
                 })}
               </div>
-            ) : (
-              <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>Sin huecos disponibles</p>
-            )}
-            {v.observations && (
-              <div className="obs">"{v.observations}"</div>
-            )}
+            ) : <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>Sin huecos disponibles</p>}
+            {v.observations && <div className="obs">"{v.observations}"</div>}
           </div>
         ))
       )}
