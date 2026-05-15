@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 function getDays() {
   const days = []
-  const dayNames = ['Sab', 'Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie']
+  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sab', 'Dom']
   for (let day = 16; day <= 27; day++) {
     const d = new Date(2025, 4, day)
     days.push({
