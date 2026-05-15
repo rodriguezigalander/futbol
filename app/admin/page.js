@@ -2,22 +2,22 @@
 import { useState, useEffect, useCallback } from 'react'
 
 function getDays() {
-  const days = []
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-  for (let day = 16; day <= 27; day++) {
-    const d = new Date(2025, 4, day)
-    days.push({
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(2025, 4, 16 + i)
+    return {
       key: d.toISOString().split('T')[0],
       label: dayNames[d.getDay()],
       date: `${d.getDate()} May`,
       short: `${dayNames[d.getDay()]}\n${d.getDate()}`,
-    })
-  }
-  return days
+    }
+  })
 }
 
 const HOURS = ['18:00', '19:00', '20:00']
 const DAYS = getDays()
+const WEEK1 = DAYS.slice(0, 7)
+const WEEK2 = DAYS.slice(7)
 
 function getCellStyle(count, max) {
   if (count === 0) return { background: '#f3f4f6', color: '#9ca3af' }
@@ -25,6 +25,38 @@ function getCellStyle(count, max) {
   if (intensity < 0.33) return { background: '#bbf7d0', color: '#14532d' }
   if (intensity < 0.66) return { background: '#4ade80', color: '#14532d' }
   return { background: '#16a34a', color: 'white' }
+}
+
+function Heatmap({ days, heatmap, heatmapNames, maxCount }) {
+  const cols = days.length
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `56px repeat(${cols}, 1fr)`,
+      gap: 3,
+    }}>
+      <div />
+      {days.map(d => (
+        <div key={d.key} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#9ca3af', textAlign: 'center', whiteSpace: 'pre-line', lineHeight: 1.2, padding: '2px 0' }}>
+          {d.short}
+        </div>
+      ))}
+      {HOURS.map(hour => (
+        <>
+          <div key={`lbl-${hour}`} style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', display: 'flex', alignItems: 'center' }}>{hour}</div>
+          {days.map(day => {
+            const k = `${day.key}|${hour}`
+            const count = heatmap[k] || 0
+            return (
+              <div key={k} style={{ ...getCellStyle(count, maxCount), borderRadius: 6, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, cursor: count > 0 ? 'pointer' : 'default' }} title={heatmapNames[k]?.join(', ') || ''}>
+                {count > 0 ? count : ''}
+              </div>
+            )
+          })}
+        </>
+      ))}
+    </div>
+  )
 }
 
 export default function AdminPage() {
@@ -114,27 +146,17 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="card heatmap" style={{ marginBottom: '1.5rem' }}>
-        <div className="card-label">Mapa de disponibilidad</div>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div className="card-label">Mapa de disponibilidad — 16 al 22 May</div>
         {loading ? <div className="empty-state">Cargando...</div> : votes.length === 0 ? <div className="empty-state">Aún no hay respuestas</div> : (
-          <div className="heatmap-grid">
-            <div></div>
-            {DAYS.map(d => <div key={d.key} className="hm-head" style={{ whiteSpace: 'pre-line' }}>{d.short}</div>)}
-            {HOURS.map(hour => (
-              <>
-                <div key={`lbl-${hour}`} className="hm-label">{hour}</div>
-                {DAYS.map(day => {
-                  const k = `${day.key}|${hour}`
-                  const count = heatmap[k] || 0
-                  return (
-                    <div key={k} className="hm-cell" style={getCellStyle(count, maxCount)} title={heatmapNames[k]?.join(', ') || ''}>
-                      {count > 0 ? count : ''}
-                    </div>
-                  )
-                })}
-              </>
-            ))}
-          </div>
+          <Heatmap days={WEEK1} heatmap={heatmap} heatmapNames={heatmapNames} maxCount={maxCount} />
+        )}
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div className="card-label">Mapa de disponibilidad — 23 al 27 May</div>
+        {loading ? <div className="empty-state">Cargando...</div> : votes.length === 0 ? <div className="empty-state">Aún no hay respuestas</div> : (
+          <Heatmap days={WEEK2} heatmap={heatmap} heatmapNames={heatmapNames} maxCount={maxCount} />
         )}
       </div>
 
