@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 function getDays() {
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
   return Array.from({ length: 12 }, (_, i) => {
     const d = new Date(2025, 4, 16 + i)
     return {
